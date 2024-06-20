@@ -1,14 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:contacts_service/contacts_service.dart';
-
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'database_helper.dart';
+import 'banner_ad_widget.dart';
+
 final TextEditingController _controller = TextEditingController();
 
-void main() {
-  runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  unawaited(MobileAds.instance.initialize());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -74,6 +80,7 @@ class _MyAppState extends State<MyApp> {
           ],
         ),
         body: const WhatsAppLauncher(),
+        bottomNavigationBar: const BannerAdWidget(),
       ),
     );
   }
@@ -119,12 +126,46 @@ class _WhatsAppLauncherState extends State<WhatsAppLauncher> {
         _showLinkOptions(formattedNumber1, formattedNumber2);
       } else {
         setState(() {
-          _errorText = 'صيغة الرقم خاطئة';
+          _errorText = 'مقدمة الرقم خاطئة';
         });
       }
     } else if (number.length == 9) {
-      final formattedNumber = '972$number';
-      _launchWhatsApp(formattedNumber);
+      if (number.startsWith('52') ||
+          number.startsWith('50') ||
+          number.startsWith('53') ||
+          number.startsWith('54') ||
+          number.startsWith('58')) {
+        final formattedNumber = '972$number';
+        _launchWhatsApp(formattedNumber);
+        SnackBar(
+          content: Text('رائع'),
+          backgroundColor: Colors.green,
+          action: SnackBarAction(
+            label: 'Dismiss',
+            onPressed: () {
+              // Some code to undo the change.
+            },
+          ),
+        );
+      } else if (number.startsWith('59') || number.startsWith('56')) {
+        final formattedNumber1 = '97$number';
+        final formattedNumber2 = '972$number';
+        _showLinkOptions(formattedNumber1, formattedNumber2);
+        SnackBar(
+          content: Text('رائع'),
+          backgroundColor: Colors.green,
+          action: SnackBarAction(
+            label: 'Dismiss',
+            onPressed: () {
+              // Some code to undo the change.
+            },
+          ),
+        );
+      } else {
+        setState(() {
+          _errorText = 'مقدمة الرقم خاطئة';
+        });
+      }
     } else if (number.length == 12) {
       _launchWhatsApp(number);
     } else {
@@ -170,8 +211,19 @@ class _WhatsAppLauncherState extends State<WhatsAppLauncher> {
       _openContacts();
     } else {
       setState(() {
-        _errorText = 'اذن الوصول لجهات الاتصال مرفوض';
+        _errorText = 'تم رفض إذن الوصول لجهات الاتصال';
+
       });
+      ScaffoldMessenger.of(context).showSnackBar(new SnackBar(
+        content: const Text('تم رفض إذن الوصول لجهات الاتصال',textAlign: TextAlign.center,),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.red,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+
+      ));
+
     }
   }
 
@@ -197,9 +249,28 @@ class _WhatsAppLauncherState extends State<WhatsAppLauncher> {
         }
         // Update _contacts after inserting into database
         _contacts = await _databaseHelper.getContactsList();
+        SnackBar(
+          content: const Text('نجحت العملية'),
+          backgroundColor: Colors.green,
+          action: SnackBarAction(
+            label: 'Dismiss',
+            onPressed: () {
+              // Some code to undo the change.
+            },
+          ),
+        );
       }
     } catch (e) {
-      print('Error fetching contacts: $e');
+      SnackBar(
+        content: Text('Error fetching contacts: $e'),
+        backgroundColor: Colors.red,
+        action: SnackBarAction(
+          label: 'Dismiss',
+          onPressed: () {
+            // Some code to undo the change.
+          },
+        ),
+      );
       // Handle error as needed
     } finally {
       setState(() {
@@ -246,11 +317,14 @@ class _WhatsAppLauncherState extends State<WhatsAppLauncher> {
           TextField(
             controller: _controller,
             keyboardType: TextInputType.number,
+            textAlign: TextAlign.right, // Aligns the input text to the right
             decoration: InputDecoration(
+              alignLabelWithHint: true,
               labelText: 'أدخل رقم الهاتف',
               errorText: _errorText,
             ),
           ),
+
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: _handleButtonPress,

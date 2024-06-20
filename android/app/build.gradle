@@ -23,6 +23,12 @@ if (flutterVersionName == null) {
     flutterVersionName = "1.0"
 }
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.code_nest.whatsapp_launcher"
     compileSdk = flutter.compileSdkVersion
@@ -45,6 +51,14 @@ android {
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
     }
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+        }
+    }
     dependencies {
         implementation 'com.android.support:multidex:2.0.1'
     }
@@ -52,7 +66,7 @@ android {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            signingConfig = signingConfigs.release
         }
     }
 }
